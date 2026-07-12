@@ -71,6 +71,23 @@ class Settings(BaseSettings):
     embedding_dimensions: int = 256
 
     # ------------------------------------------------------------------
+    # Real integrations (optional — Phase 11 GitHub + Render)
+    # ------------------------------------------------------------------
+    # Tokens are read from the backend environment ONLY. They are never stored
+    # in the database and never returned to the frontend. When a token is
+    # empty, the investigation engine transparently falls back to the fake
+    # collector for that provider.
+    github_token: str = ""
+    github_api_base: str = "https://api.github.com"
+    # Optional default "owner/repo" used when an incident has no repo hint.
+    github_default_repo: str = ""
+
+    render_api_key: str = ""
+    render_api_base: str = "https://api.render.com/v1"
+    # Optional owner id used to scope Render service lookups.
+    render_owner_id: str = ""
+
+    # ------------------------------------------------------------------
     # Langfuse observability (optional — Phase 9 incident reasoning)
     # ------------------------------------------------------------------
     langfuse_public_key: str = ""

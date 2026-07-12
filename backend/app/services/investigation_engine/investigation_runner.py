@@ -44,10 +44,10 @@ class InvestigationResult:
 
 
 class InvestigationRunner:
-    def __init__(self) -> None:
+    def __init__(self, collectors: CollectorRegistry | None = None) -> None:
         self._context_builder = KnowledgeContextBuilder()
         self._planner = InvestigationPlanner()
-        self._collectors = CollectorRegistry()
+        self._collectors = collectors or CollectorRegistry()
         self._normalizer = EvidenceNormalizer()
         self._validator = EvidenceQualityValidator()
         self._timeline = TimelineBuilder()
@@ -130,7 +130,7 @@ class InvestigationRunner:
                 collector_run = CollectorRun(
                     organization_id=organization_id,
                     investigation_run_id=run.id,
-                    collector_type=collector_name,
+                    collector_type=getattr(collector, "name", collector_name),
                     status="running",
                     started_at=now,
                 )

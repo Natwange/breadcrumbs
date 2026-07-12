@@ -1,24 +1,21 @@
-"""Fake evidence collectors for MVP investigations (no external APIs)."""
+"""Evidence collectors for investigations.
+
+Fake collectors keep the engine fully functional offline; real GitHub/Render
+collectors are transparently swapped in when backend credentials are present.
+The rest of the investigation engine never needs to know which is in use.
+"""
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Protocol
 
+from app.core.config import Settings, get_settings
+from app.services.integrations.collector_interface import Collector
+from app.services.integrations.github_client import GithubClient
+from app.services.integrations.github_collector import GithubCollector
+from app.services.integrations.render_client import RenderClient
+from app.services.integrations.render_collector import RenderCollector
 from app.services.investigation_engine.knowledge_context_builder import InvestigationContext
-
-
-class Collector(Protocol):
-    name: str
-
-    def collect(
-        self,
-        service_name: str,
-        start_time: datetime,
-        end_time: datetime,
-        alert_context: dict,
-    ) -> list[dict]:
-        ...
 
 
 def _iso(dt: datetime) -> str:
@@ -144,7 +141,8 @@ class FakeCloudStatusCollector:
 
 
 class CollectorRegistry:
-    def __init__(self) -> None:
+    def __init__(self, settings: Settings | None = None) -> None:
+        settings = settings or get_settings()
         collectors: list[Collector] = [
             FakeGithubCollector(),
             FakeRenderCollector(),
@@ -153,6 +151,22 @@ class CollectorRegistry:
             FakeCloudStatusCollector(),
         ]
         self._by_name = {c.name: c for c in collectors}
+
+        # Swap real collectors in under the same logical name the planner uses,
+        # so the engine stays agnostic to fake-vs-real. Only happens when the
+        # corresponding backend credential is configured.
+        github_client = GithubClient(settings)
+        if github_client.enabled:
+            self._by_name["fake_github_collector"] = GithubCollector(
+                github_client, default_repo=settings.github_default_repo
+            )
+        render_client = RenderClient(settings)
+        if render_client.enabled:
+            self._by_name["fake_render_collector"] = RenderCollector(render_client)
+
+    def register(self, name: str, collector: Collector) -> None:
+        """Override a collector by logical name (used in tests/wiring)."""
+        self._by_name[name] = collector
 
     def get(self, name: str) -> Collector | None:
         return self._by_name.get(name)

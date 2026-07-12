@@ -405,6 +405,65 @@ Approving a draft sets `status = "approved"` and enqueues an embedding via
 
 `postmortem_generated` is recorded when a postmortem is created.
 
+## Real integrations: GitHub + Render (Phase 11)
+
+Connects live GitHub and Render evidence while preserving the fake collectors,
+so the app still runs fully offline in dev/tests.
+
+### Connector framework
+
+Every collector — fake or real — implements the same
+`collect(service_name, start_time, end_time, alert_context) -> list[dict]`
+interface (`app/services/integrations/collector_interface.py`). Real API
+responses are normalized into the exact same raw-evidence shape as the fakes,
+so the investigation engine never needs to know which is in use.
+
+The `CollectorRegistry` transparently swaps a real collector in under the same
+logical name the planner uses, but **only when the corresponding backend
+credential is configured**. No token ⇒ fake collector.
+
+### Services (`app/services/integrations/`)
+
+| Module | Role |
+| ------ | ---- |
+| `collector_interface.py` | Shared `Collector` protocol + `CollectorError` |
+| `github_client.py` | Thin GitHub REST client (injectable httpx transport) |
+| `render_client.py` | Thin Render API client (injectable httpx transport) |
+| `github_collector.py` | Normalizes commits, PRs, merges, deploy-related commits |
+| `render_collector.py` | Normalizes deploy events, status, health, failed deploys |
+| `integration_service.py` | Lists connections + tests providers (no secrets) |
+
+**GitHub collects:** commits, pull requests, merges, deploy-related commits,
+commit messages, author, timestamp, repo, branch.
+
+**Render collects:** deploy events, deploy status, service health, failed
+deploys, log/commit summaries, service name, timestamp.
+
+### API
+
+| Method | Path | Role |
+| ------ | ---- | ---- |
+| `GET` | `/api/integrations` | any member — connections + provider availability |
+| `POST` | `/api/integrations/github/test` | admin/owner — probe GitHub connectivity |
+| `POST` | `/api/integrations/render/test` | admin/owner — probe Render connectivity |
+
+Provider availability is a boolean (`configured`); token values are never
+serialized.
+
+### Security
+
+- Tokens are read from backend env vars only
+  (`BREADCRUMBS_GITHUB_TOKEN`, `BREADCRUMBS_RENDER_API_KEY`).
+- Raw tokens are never stored in the database and never returned to the frontend.
+- `IntegrationConnection.config` holds non-secret metadata only.
+- All collected free-text is secret-redacted before it becomes `Evidence`.
+
+### Resilience
+
+A single collector failure raises `CollectorError`, which the investigation
+runner isolates per-collector: the collector's `CollectorRun` is marked
+`failed` and the run continues with evidence from the other collectors.
+
 ## Configuration
 
 Settings are loaded from environment variables (prefixed with `BREADCRUMBS_`)
@@ -430,6 +489,12 @@ or a local `.env` file. See [`.env.example`](.env.example) for all options.
 | `BREADCRUMBS_LANGFUSE_PUBLIC_KEY`    | _(empty)_        | Langfuse public key (optional observability).  |
 | `BREADCRUMBS_LANGFUSE_SECRET_KEY`    | _(empty)_        | Langfuse secret key.                           |
 | `BREADCRUMBS_LANGFUSE_HOST`          | `https://cloud.langfuse.com` | Langfuse API host.              |
+| `BREADCRUMBS_GITHUB_TOKEN`           | _(empty)_        | GitHub PAT; blank uses fake collector.         |
+| `BREADCRUMBS_GITHUB_API_BASE`        | `https://api.github.com` | GitHub API base URL.               |
+| `BREADCRUMBS_GITHUB_DEFAULT_REPO`    | _(empty)_        | Default `owner/repo` when no incident hint.    |
+| `BREADCRUMBS_RENDER_API_KEY`         | _(empty)_        | Render API key; blank uses fake collector.     |
+| `BREADCRUMBS_RENDER_API_BASE`        | `https://api.render.com/v1` | Render API base URL.            |
+| `BREADCRUMBS_RENDER_OWNER_ID`        | _(empty)_        | Optional owner id to scope Render services.     |
 
 ## Project structure
 

@@ -8,6 +8,7 @@ from app.routes import (
     health,
     incidents,
     integrations,
+    integrations_api,
     investigation_api,
     investigation_runs,
     knowledge,
@@ -34,3 +35,4 @@ api_router.include_router(investigation_api.router)
 api_router.include_router(embeddings_api.router)
 api_router.include_router(postmortem_api.router)
 api_router.include_router(integrations.router)
+api_router.include_router(integrations_api.router)
