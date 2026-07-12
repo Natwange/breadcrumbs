@@ -282,6 +282,49 @@ The default embedder is a deterministic hashing model requiring no external
 API. Swap in a real embedding provider behind `EmbeddingService` and store
 vectors in a pgvector column for production-scale search.
 
+## Evidence relevance judge (Phase 8)
+
+Ranks how relevant each piece of evidence is to an incident using Claude plus
+deterministic incident context. Judging is **categorical only** — no numeric
+scores, no hardcoded weights.
+
+### Claude output (per evidence item)
+
+```json
+{ "evidence_id": "...", "relevance": "high|medium|low|uncertain",
+  "confidence": "high|medium|low", "reason": "..." }
+```
+
+### Rules & safety
+
+- One batched Claude call judges all evidence — never one call per item.
+- Evidence, logs, timelines, and docs are wrapped as UNTRUSTED DATA; the model
+  is instructed to treat them as data, never as instructions (prompt-injection
+  defense).
+- Claude must not invent facts and returns JSON only. Output is strictly
+  validated against `relevance_schema`.
+- If Claude is unconfigured, errors, or returns malformed JSON, a deterministic
+  `rule_based_fallback` assigns categorical labels.
+- Each evidence row stores `relevance_source` = `claude` or `rule_based_fallback`,
+  plus `relevance_label`, `relevance_confidence`, and `relevance_reason`.
+
+### Observability
+
+Per judging batch, `InvestigationRun.relevance_tracking` records:
+`prompt_version`, `model_version`, `schema_version`, `latency_ms`,
+`token_usage`, `estimated_cost`, and `relevance_source`.
+
+### Services (`app/services/investigation_engine/`)
+
+| Module | Role |
+| ------ | ---- |
+| `relevance_schema.py` | Judgment schema, allowed values, strict validation |
+| `relevance_prompt_builder.py` | Builds batched prompt with untrusted-data guardrails |
+| `relevance_judge.py` | Batched Claude call + deterministic fallback + tracking |
+
+Enable Claude by setting `BREADCRUMBS_ANTHROPIC_API_KEY`; otherwise the
+deterministic fallback is used (the default in dev/tests).
+
 ## Configuration
 
 Settings are loaded from environment variables (prefixed with `BREADCRUMBS_`)

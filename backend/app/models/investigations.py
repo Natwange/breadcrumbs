@@ -24,6 +24,9 @@ class InvestigationRun(UUIDMixin, OrganizationScopedMixin, TimestampMixin, Base)
     status: Mapped[str] = mapped_column(String(50), default="pending", nullable=False, index=True)
     trigger: Mapped[str | None] = mapped_column(String(100))
     summary: Mapped[str | None] = mapped_column(Text)
+    # Observability for the evidence-relevance judging batch (Phase 8):
+    # prompt/model/schema versions, latency, token usage, cost, source.
+    relevance_tracking: Mapped[dict | None] = mapped_column(JSONType)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
@@ -78,6 +81,11 @@ class Evidence(UUIDMixin, OrganizationScopedMixin, TimestampMixin, Base):
     deduplication_key: Mapped[str | None] = mapped_column(String(255), index=True)
     metadata_: Mapped[dict | None] = mapped_column("metadata", JSONType)
     relevance_score: Mapped[float | None] = mapped_column(Float)
+    # Categorical relevance judgment (Phase 8): relevance/confidence labels and
+    # whether the judgment came from Claude or the deterministic fallback.
+    relevance_label: Mapped[str | None] = mapped_column(String(20))
+    relevance_confidence: Mapped[str | None] = mapped_column(String(20))
+    relevance_source: Mapped[str | None] = mapped_column(String(50), index=True)
     relevance_reason: Mapped[str | None] = mapped_column(Text)
     observed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 

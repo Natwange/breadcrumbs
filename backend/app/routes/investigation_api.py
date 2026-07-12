@@ -156,4 +156,5 @@ def get_investigation_run(
         timeline_count=timeline_count,
         hypothesis=HypothesisOut.model_validate(hypothesis) if hypothesis else None,
         slack_draft=SlackDraftOut.model_validate(slack_draft) if slack_draft else None,
+        relevance_tracking=run.relevance_tracking,
     )

@@ -154,25 +154,23 @@ class InvestigationRunner:
             validated = [e for e in normalized if self._validator.validate(e).valid]
             deduped = self._deduplicate(validated)
 
+            # Persist evidence first so each row has a stable id to judge.
+            item_by_evidence: dict[str, Evidence] = {}
             for item in deduped:
                 dedup_key = self._deduplication_key(item)
-                relevance = self._relevance.judge(item, affected_service=context.affected_service)
-                evidence_rows.append(
-                    Evidence(
-                        organization_id=organization_id,
-                        investigation_run_id=run.id,
-                        incident_id=incident_id,
-                        source=item["source"],
-                        evidence_type=item["evidence_type"],
-                        title=item["title"],
-                        content=item["content"],
-                        deduplication_key=dedup_key,
-                        metadata_=item.get("metadata"),
-                        relevance_score=relevance.score,
-                        relevance_reason=f"{relevance.label}: {relevance.reason}",
-                        observed_at=item.get("observed_at"),
-                    )
+                row = Evidence(
+                    organization_id=organization_id,
+                    investigation_run_id=run.id,
+                    incident_id=incident_id,
+                    source=item["source"],
+                    evidence_type=item["evidence_type"],
+                    title=item["title"],
+                    content=item["content"],
+                    deduplication_key=dedup_key,
+                    metadata_=item.get("metadata"),
+                    observed_at=item.get("observed_at"),
                 )
+                evidence_rows.append(row)
             db.add_all(evidence_rows)
             db.flush()
 
@@ -192,6 +190,42 @@ class InvestigationRunner:
                 evidence_rows=evidence_rows,
             )
             db.add_all(timeline_events)
+            db.flush()
+
+            # Step: batched evidence relevance judging (Claude + fallback).
+            evidence_payload: list[dict] = []
+            for row, item in zip(evidence_rows, deduped):
+                eid = str(row.id)
+                item_by_evidence[eid] = row
+                evidence_payload.append(
+                    {
+                        "evidence_id": eid,
+                        "source": item["source"],
+                        "evidence_type": item["evidence_type"],
+                        "title": item["title"],
+                        "content": item["content"],
+                    }
+                )
+
+            relevance_outcome = self._relevance.judge_batch(
+                evidence_payload,
+                incident=incident,
+                alerts=alerts,
+                plan=plan_payload,
+                context=context,
+                timeline_events=timeline_events,
+                runbooks=context.relevant_runbooks,
+            )
+            for eid, judgment in relevance_outcome.judgments.items():
+                row = item_by_evidence.get(eid)
+                if row is None:
+                    continue
+                row.relevance_label = judgment.relevance
+                row.relevance_confidence = judgment.confidence
+                row.relevance_source = judgment.source
+                row.relevance_reason = judgment.reason
+            if relevance_outcome.tracking is not None:
+                run.relevance_tracking = relevance_outcome.tracking.to_dict()
             db.flush()
 
             hypothesis_row = self._hypothesis.generate_foundation(
