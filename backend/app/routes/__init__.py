@@ -2,10 +2,12 @@ from fastapi import APIRouter
 
 from app.routes import (
     alerts,
+    alerts_api,
     auth,
     health,
     incidents,
     integrations,
+    investigation_api,
     investigation_runs,
     knowledge,
     knowledge_api,
@@ -21,8 +23,10 @@ api_router.include_router(health.router)
 api_router.include_router(auth.router)
 api_router.include_router(organizations.router)
 api_router.include_router(alerts.router)
+api_router.include_router(alerts_api.router)
 api_router.include_router(incidents.router)
 api_router.include_router(knowledge.router)
 api_router.include_router(knowledge_api.router)
 api_router.include_router(investigation_runs.router)
+api_router.include_router(investigation_api.router)
 api_router.include_router(integrations.router)

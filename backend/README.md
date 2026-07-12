@@ -188,6 +188,52 @@ architecture extraction. Claude returns structured JSON only and never mutates
 the graph directly. Without it, the rule-based extractor handles README,
 package.json, Prisma schema, OpenAPI, Render metadata, runbooks, and architecture notes.
 
+## Investigation engine (Phase 6)
+
+Backend-controlled investigations combine incident alerts, the approved
+knowledge graph, and fake collectors (no external APIs or Claude).
+
+### Workflow
+
+1. Start `InvestigationRun`
+2. Load incident and alerts
+3. Build `InvestigationContext` from the knowledge graph
+4. Create `InvestigationPlan` (collectors chosen from dependencies)
+5. Run fake collectors (`github`, `render`, `metrics`, `errors`, `cloud_status`)
+6. Normalize and validate evidence
+7. Deduplicate evidence
+8. Build `TimelineEvent` rows
+9. Assign rule-based relevance labels
+10. Generate `rule_based_foundation` hypothesis
+11. Generate `SlackDraft`
+12. Mark run `completed` or `failed`
+
+### Services (`app/services/investigation_engine/`)
+
+| Module | Role |
+| ------ | ---- |
+| `investigation_runner.py` | Orchestrates the full workflow |
+| `knowledge_context_builder.py` | Builds context from graph + incident |
+| `investigation_planner.py` | Plans collector steps from dependencies |
+| `collector_registry.py` | Fake collectors + registry |
+| `evidence_normalizer.py` | Normalizes raw collector output |
+| `evidence_quality_validator.py` | Rejects low-quality evidence |
+| `timeline_builder.py` | Chronological timeline from evidence |
+| `relevance_judge.py` | Non-AI relevance scores/labels |
+| `hypothesis_generator.py` | Rule-based foundation hypothesis |
+| `slack_draft_generator.py` | Draft Slack incident update |
+
+### APIs
+
+| Endpoint | Role | Min role |
+| -------- | ---- | -------- |
+| `POST /api/incidents/{incident_id}/investigation-runs` | Start and run investigation | member+ |
+| `GET /api/investigation-runs/{run_id}` | Run detail (plan, counts, hypothesis, draft) | all members |
+| `POST /api/alerts/ingest` | Ingest demo alerts (`datadog`, `render`, `new_relic`, `manual_demo`) | member+ |
+
+Legacy routes under `/investigation-runs` and `/alerts` remain for Phase 3/4
+compatibility.
+
 ## Configuration
 
 Settings are loaded from environment variables (prefixed with `BREADCRUMBS_`)
