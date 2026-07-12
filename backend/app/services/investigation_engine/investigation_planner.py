@@ -44,6 +44,18 @@ class InvestigationPlanner:
         )
         order += 1
 
+        steps.append(
+            PlannedStep(
+                order=order,
+                action="finding_similar_incidents",
+                collector=None,
+                target_service=affected,
+                rationale="Search organizational memory for similar incidents, "
+                "runbooks, postmortems, and knowledge artifacts",
+            )
+        )
+        order += 1
+
         for dep in context.direct_dependencies:
             steps.append(
                 PlannedStep(

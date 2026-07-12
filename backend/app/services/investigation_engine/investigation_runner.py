@@ -30,6 +30,7 @@ from app.services.investigation_engine.knowledge_context_builder import Knowledg
 from app.services.investigation_engine.relevance_judge import RelevanceJudge
 from app.services.investigation_engine.slack_draft_generator import SlackDraftGenerator
 from app.services.investigation_engine.timeline_builder import TimelineBuilder
+from app.services.vector_search.similarity_service import SimilarityContext, SimilarityService
 
 
 @dataclass
@@ -40,6 +41,7 @@ class InvestigationResult:
     timeline_count: int
     hypothesis: Hypothesis | None
     slack_draft: SlackDraft | None
+    similarity: SimilarityContext | None = None
 
 
 class InvestigationRunner:
@@ -53,6 +55,7 @@ class InvestigationRunner:
         self._relevance = RelevanceJudge()
         self._hypothesis = HypothesisGenerator()
         self._slack = SlackDraftGenerator()
+        self._similarity = SimilarityService()
 
     def run(
         self,
@@ -87,6 +90,7 @@ class InvestigationRunner:
         timeline_events: list[TimelineEvent] = []
         hypothesis_row: Hypothesis | None = None
         slack_row: SlackDraft | None = None
+        similarity: SimilarityContext | None = None
 
         try:
             alerts = list(
@@ -172,6 +176,15 @@ class InvestigationRunner:
             db.add_all(evidence_rows)
             db.flush()
 
+            # Step: finding_similar_incidents — retrieve organizational memory.
+            # Best-effort: an empty memory store must not fail the run.
+            try:
+                similarity = self._similarity.find_for_incident(
+                    db, organization_id, incident
+                )
+            except Exception:  # noqa: BLE001
+                similarity = None
+
             timeline_events = self._timeline.build_events(
                 organization_id=organization_id,
                 incident_id=incident_id,
@@ -197,14 +210,17 @@ class InvestigationRunner:
                 investigation_run_id=run.id,
                 timeline_events=timeline_events,
                 hypothesis=hypothesis_row,
+                similarity=similarity,
             )
             db.add(slack_row)
 
             run.status = "completed"
             run.completed_at = datetime.now(tz=timezone.utc)
+            similar_count = similarity.total() if similarity else 0
             run.summary = (
                 f"Collected {len(evidence_rows)} evidence item(s), "
-                f"{len(timeline_events)} timeline event(s)"
+                f"{len(timeline_events)} timeline event(s), "
+                f"{similar_count} similar memory match(es)"
             )
             db.commit()
             db.refresh(run)
@@ -224,6 +240,7 @@ class InvestigationRunner:
             timeline_count=len(timeline_events),
             hypothesis=hypothesis_row,
             slack_draft=slack_row,
+            similarity=similarity,
         )
 
     def _deduplication_key(self, item: dict) -> str:

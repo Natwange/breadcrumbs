@@ -234,6 +234,54 @@ knowledge graph, and fake collectors (no external APIs or Claude).
 Legacy routes under `/investigation-runs` and `/alerts` remain for Phase 3/4
 compatibility.
 
+The investigation workflow now includes a `finding_similar_incidents` step that
+pulls organizational memory (Phase 7) into the hypothesis and Slack draft.
+
+## Vector search & organizational memory (Phase 7)
+
+Durable knowledge is embedded and retrieved via similarity search to surface
+past incidents, runbooks, postmortems, and knowledge artifacts during an
+investigation.
+
+### What is embedded
+
+Embedded: `Runbook`, `Postmortem`, `KnowledgeArtifact`, and **resolved**
+`Incident`. Never embedded: live logs, live metrics, live evidence, timeline
+events. Text is always redacted before it is embedded or stored.
+
+### `EmbeddingRecord`
+
+`organization_id`, `source_type` (object type), `source_id` (object id),
+`embedding` (JSON float array; pgvector-backed in production), `text_snapshot`
+(redacted), `embedding_model`, `embedding_version`, `dimensions`,
+`content_hash`, `metadata`.
+
+### Services (`app/services/vector_search/`)
+
+| Module | Role |
+| ------ | ---- |
+| `embedding_service.py` | Deterministic local hashing embedder (offline, no API) |
+| `embedding_validator.py` | Redacts + rejects unredacted secrets before embedding |
+| `embedding_queue.py` | Idempotent per-object embedding + org backfill |
+| `vector_search.py` | Cosine similarity search, strictly org-scoped |
+| `similarity_service.py` | Builds `SimilarityContext` for an incident |
+
+### Security
+
+- Searches are always filtered by `organization_id`; memory is never shared
+  across organizations.
+- Only redacted text is embedded or stored in `text_snapshot`.
+
+### APIs
+
+| Endpoint | Role | Min role |
+| -------- | ---- | -------- |
+| `POST /api/embeddings/backfill` | Embed all org memory (idempotent) | admin+ |
+
+The default embedder is a deterministic hashing model requiring no external
+API. Swap in a real embedding provider behind `EmbeddingService` and store
+vectors in a pgvector column for production-scale search.
+
 ## Configuration
 
 Settings are loaded from environment variables (prefixed with `BREADCRUMBS_`)
@@ -253,6 +301,9 @@ or a local `.env` file. See [`.env.example`](.env.example) for all options.
 | `BREADCRUMBS_SUPABASE_URL`  | _(empty)_               | Supabase project URL (auth issuer/JWKS).     |
 | `BREADCRUMBS_SUPABASE_JWT_SECRET` | _(empty)_         | HS256 JWT secret; blank uses JWKS.           |
 | `BREADCRUMBS_SUPABASE_JWT_AUDIENCE` | `authenticated`  | Expected JWT audience.                        |
+| `BREADCRUMBS_EMBEDDING_MODEL`      | `local-hash`     | Embedding model identifier.                    |
+| `BREADCRUMBS_EMBEDDING_VERSION`    | `v1`             | Embedding version (changes force re-embed).    |
+| `BREADCRUMBS_EMBEDDING_DIMENSIONS` | `256`            | Embedding vector dimensionality.               |
 
 ## Project structure
 

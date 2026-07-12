@@ -61,6 +61,15 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-sonnet-4-20250514"
 
+    # ------------------------------------------------------------------
+    # Vector search / organizational memory (Phase 7)
+    # ------------------------------------------------------------------
+    # Default embedder is a deterministic local hashing model requiring no
+    # external API. It keeps tests reproducible and never leaves the process.
+    embedding_model: str = "local-hash"
+    embedding_version: str = "v1"
+    embedding_dimensions: int = 256
+
     # Logging
     log_level: str = "INFO"
     log_json: bool = False

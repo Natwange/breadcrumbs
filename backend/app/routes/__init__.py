@@ -4,6 +4,7 @@ from app.routes import (
     alerts,
     alerts_api,
     auth,
+    embeddings_api,
     health,
     incidents,
     integrations,
@@ -29,4 +30,5 @@ api_router.include_router(knowledge.router)
 api_router.include_router(knowledge_api.router)
 api_router.include_router(investigation_runs.router)
 api_router.include_router(investigation_api.router)
+api_router.include_router(embeddings_api.router)
 api_router.include_router(integrations.router)
