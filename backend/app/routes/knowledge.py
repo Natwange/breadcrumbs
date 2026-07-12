@@ -10,6 +10,7 @@ from app.deps import CurrentOrganization, CurrentUser, DbSession, require_org_ro
 from app.models import KnowledgeArtifact, KnowledgeGraphProposal
 from app.schemas.proposals import ProposalCreate, ProposalOut
 from app.schemas.resources import KnowledgeArtifactCreate, KnowledgeArtifactOut
+from app.services.knowledge_builder.knowledge_update_service import KnowledgeUpdateService
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 
@@ -112,6 +113,15 @@ def approve_proposal(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Proposal is not pending"
         )
+
+    if proposal.payload:
+        apply_result = KnowledgeUpdateService().apply_proposal(db, proposal)
+        if apply_result.errors:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"message": "Failed to apply proposal", "errors": apply_result.errors},
+            )
+
     proposal.status = "approved"
     proposal.reviewed_by = user.id
     db.commit()

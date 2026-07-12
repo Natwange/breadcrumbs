@@ -58,8 +58,13 @@ def test_admin_can_approve_proposal(
     db.flush()
     proposal = KnowledgeGraphProposal(
         organization_id=org.id,
-        proposal_type="add_dependency",
+        proposal_type="architecture_extraction",
         status="pending",
+        payload={
+            "services": [{"name": "api", "service_type": "api"}],
+            "dependencies": [],
+            "runbooks": [],
+        },
         proposed_by=member.id,
     )
     db.add(proposal)

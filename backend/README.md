@@ -155,6 +155,39 @@ uncertain. Resolved incidents are never silently merged.
 Audit events: `organization_created`, `member_invited`, `member_role_changed`,
 `member_removed`, `alert_correlated`.
 
+## Knowledge builder
+
+Builds a living organizational knowledge graph from untrusted artifacts.
+
+### Flow
+
+1. Ingest artifact (`POST /api/knowledge/artifacts`) — secrets redacted before storage.
+2. Extract proposed services/dependencies/runbooks (rule-based by default; Claude optional).
+3. Create `KnowledgeGraphProposal` with drift analysis.
+4. Admin approves/rejects (`POST /api/knowledge/proposals/{id}/approve|reject`).
+5. Approved proposals update `ServiceNode`, `ServiceDependency`, and `Runbook`.
+6. Drift is detected but approved knowledge is never auto-deleted.
+
+### API routes
+
+| Route | Access |
+| ----- | ------ |
+| `POST /api/knowledge/artifacts` | member+ |
+| `POST /api/knowledge/build` | member+ |
+| `GET /api/knowledge/graph` | all members |
+| `GET /api/knowledge/proposals` | all members |
+| `POST /api/knowledge/proposals/{id}/approve` | admin+ |
+| `POST /api/knowledge/proposals/{id}/reject` | admin+ |
+| `POST /api/knowledge/updates` | admin+ |
+| `GET /api/knowledge/runbooks` | all members |
+
+### Optional: Claude
+
+Set `BREADCRUMBS_ANTHROPIC_API_KEY` in `backend/.env` to enable Claude-based
+architecture extraction. Claude returns structured JSON only and never mutates
+the graph directly. Without it, the rule-based extractor handles README,
+package.json, Prisma schema, OpenAPI, Render metadata, runbooks, and architecture notes.
+
 ## Configuration
 
 Settings are loaded from environment variables (prefixed with `BREADCRUMBS_`)

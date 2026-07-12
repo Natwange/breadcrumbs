@@ -8,6 +8,7 @@ from app.routes import (
     integrations,
     investigation_runs,
     knowledge,
+    knowledge_api,
     organizations,
 )
 
@@ -22,5 +23,6 @@ api_router.include_router(organizations.router)
 api_router.include_router(alerts.router)
 api_router.include_router(incidents.router)
 api_router.include_router(knowledge.router)
+api_router.include_router(knowledge_api.router)
 api_router.include_router(investigation_runs.router)
 api_router.include_router(integrations.router)

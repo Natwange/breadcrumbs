@@ -55,6 +55,12 @@ class Settings(BaseSettings):
     def supabase_jwks_url(self) -> str:
         return f"{self.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
 
+    # ------------------------------------------------------------------
+    # Claude (optional — knowledge builder architecture extraction)
+    # ------------------------------------------------------------------
+    anthropic_api_key: str = ""
+    anthropic_model: str = "claude-sonnet-4-20250514"
+
     # Logging
     log_level: str = "INFO"
     log_json: bool = False
