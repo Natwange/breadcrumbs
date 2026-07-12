@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import (
@@ -27,6 +27,10 @@ class InvestigationRun(UUIDMixin, OrganizationScopedMixin, TimestampMixin, Base)
     # Observability for the evidence-relevance judging batch (Phase 8):
     # prompt/model/schema versions, latency, token usage, cost, source.
     relevance_tracking: Mapped[dict | None] = mapped_column(JSONType)
+    # Phase 9 incident reasoning output.
+    executive_summary: Mapped[str | None] = mapped_column(Text)
+    reasoning_status: Mapped[str | None] = mapped_column(String(50), index=True)
+    reasoning_tracking: Mapped[dict | None] = mapped_column(JSONType)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
@@ -120,6 +124,9 @@ class Hypothesis(UUIDMixin, OrganizationScopedMixin, TimestampMixin, Base):
     status: Mapped[str] = mapped_column(String(50), default="proposed", nullable=False)
     confidence: Mapped[float | None] = mapped_column(Float)
     rank: Mapped[int | None] = mapped_column(Integer)
+    supporting_evidence_ids: Mapped[list | None] = mapped_column(JSONType)
+    contradicting_evidence_ids: Mapped[list | None] = mapped_column(JSONType)
+    reasoning_source: Mapped[str | None] = mapped_column(String(50))
 
 
 class SuggestedAction(UUIDMixin, OrganizationScopedMixin, TimestampMixin, Base):
@@ -138,6 +145,9 @@ class SuggestedAction(UUIDMixin, OrganizationScopedMixin, TimestampMixin, Base):
     description: Mapped[str | None] = mapped_column(Text)
     action_type: Mapped[str | None] = mapped_column(String(100))
     status: Mapped[str] = mapped_column(String(50), default="pending", nullable=False)
+    requires_human_approval: Mapped[bool] = mapped_column(default=False, nullable=False)
+    reasoning_source: Mapped[str | None] = mapped_column(String(50))
+    supporting_evidence_ids: Mapped[list | None] = mapped_column(JSONType)
     # Approval / rejection workflow fields.
     approved_by: Mapped[uuid.UUID | None] = mapped_column(
         GUID, ForeignKey("user_profiles.id", ondelete="SET NULL")
@@ -162,3 +172,4 @@ class SlackDraft(UUIDMixin, OrganizationScopedMixin, TimestampMixin, Base):
     channel: Mapped[str | None] = mapped_column(String(255))
     content: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(50), default="draft", nullable=False)
+    reasoning_source: Mapped[str | None] = mapped_column(String(50))

@@ -201,7 +201,8 @@ def test_timeline_and_slack_draft_created(
     assert body["timeline_count"] > 0
     assert body["slack_draft"] is not None
     assert body["hypothesis"] is not None
-    assert body["hypothesis"]["title"].startswith("rule_based_foundation")
+    assert body["hypothesis"]["title"]  # reasoning engine sets title
+    assert body.get("reasoning_status")
 
     timeline = list(
         db.scalars(
@@ -214,7 +215,7 @@ def test_timeline_and_slack_draft_created(
         select(SlackDraft).where(SlackDraft.investigation_run_id == uuid.UUID(run_id))
     )
     assert draft is not None
-    assert "Incident:" in (draft.content or "")
+    assert draft.content
 
 
 def test_alert_ingest_creates_incident(

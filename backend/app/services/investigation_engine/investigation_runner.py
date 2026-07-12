@@ -24,12 +24,11 @@ from app.models import (
 from app.services.investigation_engine.collector_registry import CollectorRegistry
 from app.services.investigation_engine.evidence_normalizer import EvidenceNormalizer
 from app.services.investigation_engine.evidence_quality_validator import EvidenceQualityValidator
-from app.services.investigation_engine.hypothesis_generator import HypothesisGenerator
 from app.services.investigation_engine.investigation_planner import InvestigationPlanner
 from app.services.investigation_engine.knowledge_context_builder import KnowledgeContextBuilder
 from app.services.investigation_engine.relevance_judge import RelevanceJudge
-from app.services.investigation_engine.slack_draft_generator import SlackDraftGenerator
 from app.services.investigation_engine.timeline_builder import TimelineBuilder
+from app.services.incident_reasoning.reasoning_engine import ReasoningEngine
 from app.services.vector_search.similarity_service import SimilarityContext, SimilarityService
 
 
@@ -53,8 +52,7 @@ class InvestigationRunner:
         self._validator = EvidenceQualityValidator()
         self._timeline = TimelineBuilder()
         self._relevance = RelevanceJudge()
-        self._hypothesis = HypothesisGenerator()
-        self._slack = SlackDraftGenerator()
+        self._reasoning = ReasoningEngine()
         self._similarity = SimilarityService()
 
     def run(
@@ -228,25 +226,17 @@ class InvestigationRunner:
                 run.relevance_tracking = relevance_outcome.tracking.to_dict()
             db.flush()
 
-            hypothesis_row = self._hypothesis.generate_foundation(
-                organization_id=organization_id,
-                incident=incident,
-                investigation_run_id=run.id,
-                context=context,
-                evidence_rows=evidence_rows,
-            )
-            db.add(hypothesis_row)
-            db.flush()
-
-            slack_row = self._slack.generate(
-                organization_id=organization_id,
-                incident=incident,
-                investigation_run_id=run.id,
-                timeline_events=timeline_events,
-                hypothesis=hypothesis_row,
+            reasoning_result = self._reasoning.run(
+                db,
+                organization_id,
+                run,
+                incident,
                 similarity=similarity,
             )
-            db.add(slack_row)
+            hypothesis_row = (
+                reasoning_result.hypotheses[0] if reasoning_result.hypotheses else None
+            )
+            slack_row = reasoning_result.slack_draft
 
             run.status = "completed"
             run.completed_at = datetime.now(tz=timezone.utc)
@@ -254,7 +244,8 @@ class InvestigationRunner:
             run.summary = (
                 f"Collected {len(evidence_rows)} evidence item(s), "
                 f"{len(timeline_events)} timeline event(s), "
-                f"{similar_count} similar memory match(es)"
+                f"{similar_count} similar memory match(es), "
+                f"reasoning={run.reasoning_status}"
             )
             db.commit()
             db.refresh(run)

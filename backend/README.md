@@ -325,6 +325,43 @@ Per judging batch, `InvestigationRun.relevance_tracking` records:
 Enable Claude by setting `BREADCRUMBS_ANTHROPIC_API_KEY`; otherwise the
 deterministic fallback is used (the default in dev/tests).
 
+## Claude incident reasoning (Phase 9)
+
+Generates evidence-backed incident analysis: executive summary, hypotheses,
+estimated impact, suggested actions, missing evidence, and Slack draft.
+
+### Readiness gate
+
+Before full Claude reasoning, `ReasoningReadinessGate` checks evidence quality.
+If there is no high-relevance evidence and most items are low/uncertain,
+reasoning is skipped with `reasoning_status = "insufficient_evidence"` and
+missing-evidence suggestions are generated instead.
+
+### Services (`app/services/incident_reasoning/`)
+
+| Module | Role |
+| ------ | ---- |
+| `evidence_pack_builder.py` | Budgeted, redacted evidence pack from run data |
+| `reasoning_engine.py` | Orchestrates gate, Claude call, fallback, persistence |
+| `reasoning_prompt_builder.py` | Batched prompt with untrusted-data guardrails |
+| `reasoning_schema.py` | Output schema and strict validation |
+| `action_generator.py` | Creates `SuggestedAction` rows (approval for risky actions) |
+| `impact_estimator.py` | Creates `IncidentImpact` rows |
+| `confidence_validator.py` | Rejects hypotheses citing unknown evidence IDs |
+| `langfuse_logger.py` | Optional Langfuse observability (redacted metadata only) |
+
+### Evidence pack budget
+
+Context budget (~24k chars): high 60%, medium 30%, uncertain 10%, low sampled.
+Over-budget groups are summarized; evidence IDs are always preserved.
+
+### Observability
+
+`InvestigationRun.reasoning_tracking` records `prompt_version`, `model_version`,
+`schema_version`, `latency_ms`, `token_usage`, `estimated_cost`, and
+`reasoning_source`. Optional Langfuse via `BREADCRUMBS_LANGFUSE_PUBLIC_KEY` and
+`BREADCRUMBS_LANGFUSE_SECRET_KEY`.
+
 ## Configuration
 
 Settings are loaded from environment variables (prefixed with `BREADCRUMBS_`)
@@ -347,6 +384,9 @@ or a local `.env` file. See [`.env.example`](.env.example) for all options.
 | `BREADCRUMBS_EMBEDDING_MODEL`      | `local-hash`     | Embedding model identifier.                    |
 | `BREADCRUMBS_EMBEDDING_VERSION`    | `v1`             | Embedding version (changes force re-embed).    |
 | `BREADCRUMBS_EMBEDDING_DIMENSIONS` | `256`            | Embedding vector dimensionality.               |
+| `BREADCRUMBS_LANGFUSE_PUBLIC_KEY`    | _(empty)_        | Langfuse public key (optional observability).  |
+| `BREADCRUMBS_LANGFUSE_SECRET_KEY`    | _(empty)_        | Langfuse secret key.                           |
+| `BREADCRUMBS_LANGFUSE_HOST`          | `https://cloud.langfuse.com` | Langfuse API host.              |
 
 ## Project structure
 

@@ -157,4 +157,7 @@ def get_investigation_run(
         hypothesis=HypothesisOut.model_validate(hypothesis) if hypothesis else None,
         slack_draft=SlackDraftOut.model_validate(slack_draft) if slack_draft else None,
         relevance_tracking=run.relevance_tracking,
+        executive_summary=run.executive_summary,
+        reasoning_status=run.reasoning_status,
+        reasoning_tracking=run.reasoning_tracking,
     )

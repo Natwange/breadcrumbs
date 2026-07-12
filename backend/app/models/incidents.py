@@ -67,6 +67,9 @@ class IncidentImpact(UUIDMixin, OrganizationScopedMixin, TimestampMixin, Base):
     incident_id: Mapped[uuid.UUID] = mapped_column(
         GUID, ForeignKey("incidents.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    investigation_run_id: Mapped[uuid.UUID | None] = mapped_column(
+        GUID, ForeignKey("investigation_runs.id", ondelete="SET NULL"), index=True
+    )
     impact_type: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     severity: Mapped[str | None] = mapped_column(String(50))

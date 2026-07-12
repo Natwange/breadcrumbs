@@ -70,6 +70,13 @@ class Settings(BaseSettings):
     embedding_version: str = "v1"
     embedding_dimensions: int = 256
 
+    # ------------------------------------------------------------------
+    # Langfuse observability (optional — Phase 9 incident reasoning)
+    # ------------------------------------------------------------------
+    langfuse_public_key: str = ""
+    langfuse_secret_key: str = ""
+    langfuse_host: str = "https://cloud.langfuse.com"
+
     # Logging
     log_level: str = "INFO"
     log_json: bool = False

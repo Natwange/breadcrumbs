@@ -68,6 +68,9 @@ class InvestigationRunDetailOut(BaseModel):
     hypothesis: HypothesisOut | None = None
     slack_draft: SlackDraftOut | None = None
     relevance_tracking: dict | None = None
+    executive_summary: str | None = None
+    reasoning_status: str | None = None
+    reasoning_tracking: dict | None = None
 
 
 DemoAlertSource = Literal["datadog", "render", "new_relic", "manual_demo"]
