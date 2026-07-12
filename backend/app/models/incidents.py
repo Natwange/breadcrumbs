@@ -83,8 +83,12 @@ class Postmortem(UUIDMixin, OrganizationScopedMixin, TimestampMixin, Base):
     incident_id: Mapped[uuid.UUID] = mapped_column(
         GUID, ForeignKey("incidents.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    investigation_run_id: Mapped[uuid.UUID | None] = mapped_column(
+        GUID, ForeignKey("investigation_runs.id", ondelete="SET NULL"), index=True
+    )
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     content: Mapped[str | None] = mapped_column(Text)
+    sections_: Mapped[dict | None] = mapped_column("sections", JSONType)
     status: Mapped[str] = mapped_column(String(50), default="draft", nullable=False)
     # Whether the postmortem was authored by a human or generated.
     postmortem_source: Mapped[str] = mapped_column(

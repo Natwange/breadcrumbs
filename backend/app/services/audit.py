@@ -14,6 +14,7 @@ AUDIT_MEMBER_INVITED = "member_invited"
 AUDIT_MEMBER_ROLE_CHANGED = "member_role_changed"
 AUDIT_MEMBER_REMOVED = "member_removed"
 AUDIT_ALERT_CORRELATED = "alert_correlated"
+AUDIT_POSTMORTEM_GENERATED = "postmortem_generated"
 
 
 def record_audit(

@@ -13,6 +13,7 @@ from app.routes import (
     knowledge,
     knowledge_api,
     organizations,
+    postmortem_api,
 )
 
 api_router = APIRouter()
@@ -31,4 +32,5 @@ api_router.include_router(knowledge_api.router)
 api_router.include_router(investigation_runs.router)
 api_router.include_router(investigation_api.router)
 api_router.include_router(embeddings_api.router)
+api_router.include_router(postmortem_api.router)
 api_router.include_router(integrations.router)

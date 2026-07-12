@@ -362,6 +362,49 @@ Over-budget groups are summarized; evidence IDs are always preserved.
 `reasoning_source`. Optional Langfuse via `BREADCRUMBS_LANGFUSE_PUBLIC_KEY` and
 `BREADCRUMBS_LANGFUSE_SECRET_KEY`.
 
+## Postmortem generator (Phase 10)
+
+Generates a structured postmortem after an incident is **resolved**. Claude
+returns JSON internally; the API stores structured sections and a rendered
+markdown `content` field for the UI.
+
+### API
+
+| Method | Path | Role |
+| ------ | ---- | ---- |
+| `POST` | `/api/incidents/{incident_id}/postmortem` | member+ — generate draft postmortem |
+| `POST` | `/api/postmortems/{postmortem_id}/approve` | member+ — approve and embed for memory |
+
+Generation requires `incident.status = "resolved"`. Active or investigating
+incidents return HTTP 400.
+
+### Services (`app/services/postmortem/`)
+
+| Module | Role |
+| ------ | ---- |
+| `postmortem_generator.py` | Gathers incident context, calls Claude/fallback, persists |
+| `postmortem_prompt_builder.py` | Prompt with untrusted-data guardrails |
+| `postmortem_schema.py` | Section schema, validation, paragraph rendering |
+| `postmortem_fallback.py` | Deterministic template when Claude is unavailable |
+
+### Output sections
+
+Stored in `Postmortem.sections` (JSON): `summary`, `impact`, `timeline`,
+`root_cause`, `resolution`, `prevention_items`, `incident_duration_minutes`,
+`postmortem_source`, and `assumptions` (facts vs assumptions separated).
+
+`incident_duration_minutes` is computed from `started_at`/`detected_at` to
+`resolved_at`. All gathered text is redacted before prompts or storage.
+
+### Approval & memory
+
+Approving a draft sets `status = "approved"` and enqueues an embedding via
+`EmbeddingQueue.embed_postmortem()` for future similarity search.
+
+### Audit
+
+`postmortem_generated` is recorded when a postmortem is created.
+
 ## Configuration
 
 Settings are loaded from environment variables (prefixed with `BREADCRUMBS_`)
