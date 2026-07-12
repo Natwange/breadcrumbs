@@ -1,9 +1,11 @@
 import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 
-from app.deps import CurrentOrganization, DbSession
+from app.core.roles import CAN_MANAGE_ORG, CAN_READ
+from app.deps import CurrentOrganization, DbSession, require_org_role
 from app.models import IntegrationConnection
 from app.schemas.resources import (
     IntegrationConnectionCreate,
@@ -12,10 +14,15 @@ from app.schemas.resources import (
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
 
+_read = require_org_role(*CAN_READ)
+_manage = require_org_role(*CAN_MANAGE_ORG)
+
 
 @router.get("", response_model=list[IntegrationConnectionOut])
 def list_integrations(
-    organization: CurrentOrganization, db: DbSession
+    organization: CurrentOrganization,
+    db: DbSession,
+    _membership: Annotated[object, Depends(_read)],
 ) -> list[IntegrationConnection]:
     stmt = (
         select(IntegrationConnection)
@@ -32,9 +39,8 @@ def create_integration(
     payload: IntegrationConnectionCreate,
     organization: CurrentOrganization,
     db: DbSession,
+    _membership: Annotated[object, Depends(_manage)],
 ) -> IntegrationConnection:
-    # SECURITY: ``config`` is non-secret metadata only. Never persist API keys
-    # or tokens here; secrets belong in a dedicated secret manager.
     connection = IntegrationConnection(
         organization_id=organization.id,
         provider=payload.provider,
@@ -50,7 +56,10 @@ def create_integration(
 
 @router.get("/{connection_id}", response_model=IntegrationConnectionOut)
 def get_integration(
-    connection_id: uuid.UUID, organization: CurrentOrganization, db: DbSession
+    connection_id: uuid.UUID,
+    organization: CurrentOrganization,
+    db: DbSession,
+    _membership: Annotated[object, Depends(_read)],
 ) -> IntegrationConnection:
     connection = db.scalar(
         select(IntegrationConnection).where(

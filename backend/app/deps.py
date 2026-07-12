@@ -26,6 +26,17 @@ from app.db.session import get_db
 from app.models import Organization, OrganizationMember, UserProfile
 from app.services.provisioning import get_or_provision_user
 
+# Re-export role constants for convenience in route modules.
+from app.core.roles import (  # noqa: F401
+    CAN_MANAGE_ORG,
+    CAN_READ,
+    CAN_WRITE_CONTENT,
+    ROLE_ADMIN,
+    ROLE_MEMBER,
+    ROLE_OWNER,
+    ROLE_VIEWER,
+)
+
 # auto_error=False so we can return a consistent 401 with a WWW-Authenticate
 # header rather than FastAPI's default 403 for a missing credential.
 _bearer_scheme = HTTPBearer(auto_error=False)
@@ -112,6 +123,57 @@ def get_current_organization(
     return org
 
 
+def get_current_membership(
+    user: Annotated[UserProfile, Depends(get_current_user)],
+    organization: Annotated[Organization, Depends(get_current_organization)],
+    db: Annotated[Session, Depends(get_db)],
+) -> OrganizationMember:
+    """Return the caller's active membership in the current organization."""
+    membership = db.scalar(
+        select(OrganizationMember).where(
+            OrganizationMember.organization_id == organization.id,
+            OrganizationMember.user_id == user.id,
+            OrganizationMember.status == "active",
+        )
+    )
+    if membership is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this organization",
+        )
+    return membership
+
+
+def require_org_role(*allowed_roles: str):
+    """Dependency factory that enforces role-based access within the org.
+
+    Usage::
+
+        @router.post("/incidents")
+        def create_incident(
+            _membership: Annotated[
+                OrganizationMember,
+                Depends(require_org_role("owner", "admin", "member")),
+            ],
+            ...
+        ):
+    """
+    allowed = frozenset(allowed_roles)
+
+    def _check(
+        membership: Annotated[OrganizationMember, Depends(get_current_membership)],
+    ) -> OrganizationMember:
+        if membership.role not in allowed:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions",
+            )
+        return membership
+
+    return _check
+
+
 CurrentUser = Annotated[UserProfile, Depends(get_current_user)]
 CurrentOrganization = Annotated[Organization, Depends(get_current_organization)]
+CurrentMembership = Annotated[OrganizationMember, Depends(get_current_membership)]
 DbSession = Annotated[Session, Depends(get_db)]

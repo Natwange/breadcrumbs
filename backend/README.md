@@ -117,6 +117,44 @@ No API keys or user secrets are stored in the database.
 
 All authenticated queries are scoped by `organization_id`.
 
+## Organization tenancy & alert correlation (Phase 4)
+
+### Roles
+
+| Role   | Permissions |
+| ------ | ----------- |
+| owner  | Full org control, soft-delete, all admin capabilities |
+| admin  | Manage integrations, invite members, approve proposals |
+| member | Create incidents, run investigations, upload artifacts, ingest alerts |
+| viewer | Read-only |
+
+Use `require_org_role(...)` on routes to enforce the above. The optional
+`X-Organization-Id` header selects among a user's organizations but is always
+validated against membership.
+
+### New routes
+
+| Route | Access |
+| ----- | ------ |
+| `GET/PATCH /organizations/settings` | read / admin |
+| `GET /organizations/members` | all members |
+| `PATCH /organizations/members/{id}/role` | admin+ |
+| `DELETE /organizations/members/{id}` | admin+ |
+| `POST/GET /organizations/invitations` | admin+ |
+| `DELETE /organizations` | owner (soft-delete) |
+| `POST /alerts` | member+ (correlates into incidents) |
+| `POST /knowledge/proposals/{id}/approve` | admin+ |
+
+### Alert correlation
+
+`POST /alerts` ingests a monitoring signal and runs
+`AlertCorrelationService`, which attaches the alert to an **open** incident
+when correlation confidence is high enough, or creates a new incident when
+uncertain. Resolved incidents are never silently merged.
+
+Audit events: `organization_created`, `member_invited`, `member_role_changed`,
+`member_removed`, `alert_correlated`.
+
 ## Configuration
 
 Settings are loaded from environment variables (prefixed with `BREADCRUMBS_`)

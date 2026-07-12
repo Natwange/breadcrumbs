@@ -9,7 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.security import TokenClaims
-from app.models import Organization, OrganizationMember, UserProfile
+from app.models import Organization, OrganizationMember, OrganizationSettings, UserProfile
+from app.services.audit import AUDIT_ORGANIZATION_CREATED, record_audit
 
 _SLUG_CLEAN = re.compile(r"[^a-z0-9]+")
 
@@ -62,6 +63,20 @@ def get_or_provision_user(db: Session, claims: TokenClaims) -> UserProfile:
         status="active",
     )
     db.add(membership)
+
+    settings = OrganizationSettings(organization_id=org.id)
+    db.add(settings)
+
+    record_audit(
+        db,
+        organization_id=org.id,
+        action=AUDIT_ORGANIZATION_CREATED,
+        actor_id=user.id,
+        resource_type="organization",
+        resource_id=org.id,
+        metadata={"slug": org.slug},
+    )
+
     db.commit()
     db.refresh(user)
     return user

@@ -1,18 +1,25 @@
 import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 
-from app.deps import CurrentOrganization, DbSession
+from app.core.roles import CAN_READ, CAN_WRITE_CONTENT
+from app.deps import CurrentOrganization, DbSession, require_org_role
 from app.models import Incident, InvestigationRun
 from app.schemas.resources import InvestigationRunCreate, InvestigationRunOut
 
 router = APIRouter(prefix="/investigation-runs", tags=["investigation-runs"])
 
+_read = require_org_role(*CAN_READ)
+_write = require_org_role(*CAN_WRITE_CONTENT)
+
 
 @router.get("", response_model=list[InvestigationRunOut])
 def list_runs(
-    organization: CurrentOrganization, db: DbSession
+    organization: CurrentOrganization,
+    db: DbSession,
+    _membership: Annotated[object, Depends(_read)],
 ) -> list[InvestigationRun]:
     stmt = (
         select(InvestigationRun)
@@ -24,10 +31,11 @@ def list_runs(
 
 @router.post("", response_model=InvestigationRunOut, status_code=status.HTTP_201_CREATED)
 def create_run(
-    payload: InvestigationRunCreate, organization: CurrentOrganization, db: DbSession
+    payload: InvestigationRunCreate,
+    organization: CurrentOrganization,
+    db: DbSession,
+    _membership: Annotated[object, Depends(_write)],
 ) -> InvestigationRun:
-    # If an incident is referenced, ensure it belongs to this organization so a
-    # run can't be linked across tenants.
     if payload.incident_id is not None:
         incident = db.scalar(
             select(Incident).where(
@@ -54,7 +62,10 @@ def create_run(
 
 @router.get("/{run_id}", response_model=InvestigationRunOut)
 def get_run(
-    run_id: uuid.UUID, organization: CurrentOrganization, db: DbSession
+    run_id: uuid.UUID,
+    organization: CurrentOrganization,
+    db: DbSession,
+    _membership: Annotated[object, Depends(_read)],
 ) -> InvestigationRun:
     run = db.scalar(
         select(InvestigationRun).where(
