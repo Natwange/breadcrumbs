@@ -1,5 +1,8 @@
 """Vector search and organizational memory (Phase 7)."""
 
+from app.services.vector_search.embedding_queue import EmbeddingQueue
+from app.services.vector_search.embedding_service import EmbeddingService
+from app.services.vector_search.embedding_validator import EmbeddingValidator
 from app.services.vector_search.object_types import (
     EMBEDDABLE_OBJECT_TYPES,
     OBJECT_TYPE_INCIDENT,
@@ -7,11 +10,8 @@ from app.services.vector_search.object_types import (
     OBJECT_TYPE_POSTMORTEM,
     OBJECT_TYPE_RUNBOOK,
 )
-from app.services.vector_search.embedding_service import EmbeddingService
-from app.services.vector_search.embedding_validator import EmbeddingValidator
-from app.services.vector_search.vector_search import SearchHit, VectorSearch
 from app.services.vector_search.similarity_service import SimilarityContext, SimilarityService
-from app.services.vector_search.embedding_queue import EmbeddingQueue
+from app.services.vector_search.vector_search import SearchHit, VectorSearch
 
 __all__ = [
     "EmbeddingService",

@@ -35,6 +35,8 @@ export default function AuthForm() {
       setMessage(
         "Account created. If email confirmation is enabled, check your inbox before signing in."
       );
+    } else {
+      window.location.href = "/dashboard";
     }
   }
 

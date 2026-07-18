@@ -1,0 +1,75 @@
+# Render Blueprint for breadcrumbs (backend + frontend).
+#
+# The database is Supabase (managed separately) — set BREADCRUMBS_DATABASE_URL
+# to the Supabase connection string. Secrets are marked `sync: false` so they
+# are entered in the Render dashboard and never committed.
+#
+# Frontend can alternatively be deployed to Vercel; if so, delete the second
+# service and set NEXT_PUBLIC_API_BASE_URL in the Vercel project settings.
+
+services:
+  # ----------------------------------------------------------------------
+  # Backend API (FastAPI, Docker)
+  # ----------------------------------------------------------------------
+  - type: web
+    name: breadcrumbs-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: starter
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: BREADCRUMBS_ENVIRONMENT
+        value: production
+      - key: BREADCRUMBS_DEBUG
+        value: "false"
+      - key: BREADCRUMBS_LOG_JSON
+        value: "true"
+      # Restrict CORS to your deployed frontend origin(s), comma-separated.
+      - key: BREADCRUMBS_CORS_ORIGINS
+        sync: false
+      # Supabase Postgres connection string (postgresql+psycopg2://...).
+      - key: BREADCRUMBS_DATABASE_URL
+        sync: false
+      - key: BREADCRUMBS_SUPABASE_URL
+        sync: false
+      - key: BREADCRUMBS_SUPABASE_JWT_SECRET
+        sync: false
+      # Optional AI + integration credentials (single-org deployment model).
+      - key: BREADCRUMBS_ANTHROPIC_API_KEY
+        sync: false
+      - key: BREADCRUMBS_GITHUB_TOKEN
+        sync: false
+      - key: BREADCRUMBS_GITHUB_DEFAULT_REPO
+        sync: false
+      - key: BREADCRUMBS_RENDER_API_KEY
+        sync: false
+      # Optional observability.
+      - key: BREADCRUMBS_SENTRY_DSN
+        sync: false
+      - key: BREADCRUMBS_LANGFUSE_PUBLIC_KEY
+        sync: false
+      - key: BREADCRUMBS_LANGFUSE_SECRET_KEY
+        sync: false
+
+  # ----------------------------------------------------------------------
+  # Frontend (Next.js) — optional; Vercel is also supported.
+  # ----------------------------------------------------------------------
+  - type: web
+    name: breadcrumbs-frontend
+    runtime: node
+    rootDir: ./frontend
+    plan: starter
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    autoDeploy: true
+    envVars:
+      - key: NEXT_PUBLIC_API_BASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: NEXT_PUBLIC_SENTRY_DSN
+        sync: false

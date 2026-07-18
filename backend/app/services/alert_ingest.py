@@ -6,8 +6,9 @@ from datetime import datetime, timezone
 
 from app.schemas.investigation_engine import AlertIngestRequest
 
-
-_ALLOWED_SOURCES = frozenset({"datadog", "render", "new_relic", "manual_demo"})
+_ALLOWED_SOURCES = frozenset(
+    {"datadog", "render", "new_relic", "manual_demo", "sentry"}
+)
 
 
 def validate_alert_ingest(payload: AlertIngestRequest) -> None:
@@ -32,6 +33,9 @@ def normalize_demo_payload(payload: AlertIngestRequest) -> dict:
         raw.setdefault("alert_type", raw.get("policy_name") or "condition")
     elif payload.source == "manual_demo":
         raw.setdefault("service", raw.get("service") or raw.get("service_name"))
+    elif payload.source == "sentry":
+        raw.setdefault("service", raw.get("service") or "focusflow-server")
+        raw.setdefault("alert_type", raw.get("alert_type") or "error")
 
     if payload.description and not raw.get("description"):
         raw["description"] = payload.description

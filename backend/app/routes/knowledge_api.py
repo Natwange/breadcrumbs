@@ -8,6 +8,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 
+from app.core.rate_limit import rate_limit
 from app.core.roles import CAN_MANAGE_ORG, CAN_READ, CAN_WRITE_CONTENT
 from app.deps import CurrentOrganization, CurrentUser, DbSession, require_org_role
 from app.models import KnowledgeGraphProposal
@@ -50,6 +51,7 @@ def ingest_artifact(
     user: CurrentUser,
     db: DbSession,
     _membership: Annotated[object, Depends(_write)],
+    _rate_limit: Annotated[None, Depends(rate_limit("artifact_upload"))] = None,
 ) -> ArtifactIngestResponse:
     artifact, proposal = _ingestor.ingest(
         db,
@@ -74,6 +76,7 @@ def build_from_artifact(
     user: CurrentUser,
     db: DbSession,
     _membership: Annotated[object, Depends(_write)],
+    _rate_limit: Annotated[None, Depends(rate_limit("knowledge_build"))] = None,
 ) -> KnowledgeGraphProposal:
     try:
         proposal = _ingestor.build_from_artifact(

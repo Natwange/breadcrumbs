@@ -9,7 +9,13 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
-from app.models import KnowledgeGraphProposal, OrganizationMember, ServiceDependency, ServiceNode, UserProfile
+from app.models import (
+    KnowledgeGraphProposal,
+    OrganizationMember,
+    ServiceDependency,
+    ServiceNode,
+    UserProfile,
+)
 from app.services.knowledge_builder.secret_redactor import redact_secrets
 from tests.conftest import auth_headers, make_token, seed_org_member
 

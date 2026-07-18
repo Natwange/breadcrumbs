@@ -5,7 +5,10 @@ from __future__ import annotations
 import uuid
 
 from app.models import SuggestedAction
-from app.services.incident_reasoning.reasoning_schema import ReasoningAction, REASONING_SOURCE_CLAUDE
+from app.services.incident_reasoning.reasoning_schema import (
+    REASONING_SOURCE_CLAUDE,
+    ReasoningAction,
+)
 
 
 class ActionGenerator:

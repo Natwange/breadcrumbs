@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 
@@ -11,7 +10,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.models import AuditLog, EmbeddingRecord, Incident, Postmortem
+from app.models import AuditLog, EmbeddingRecord, Incident
 from app.services.audit import AUDIT_POSTMORTEM_GENERATED
 from app.services.postmortem.postmortem_generator import (
     PostmortemGenerator,

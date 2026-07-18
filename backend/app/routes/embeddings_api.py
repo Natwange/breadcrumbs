@@ -6,6 +6,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 
+from app.core.rate_limit import rate_limit
 from app.core.roles import CAN_MANAGE_ORG
 from app.deps import CurrentOrganization, DbSession, require_org_role
 from app.schemas.vector_search import EmbeddingBackfillResponse
@@ -27,6 +28,7 @@ def backfill_embeddings(
     organization: CurrentOrganization,
     db: DbSession,
     _membership: Annotated[object, Depends(_manage)],
+    _rate_limit: Annotated[None, Depends(rate_limit("embedding_backfill"))] = None,
 ) -> EmbeddingBackfillResponse:
     """Embed all embeddable organizational memory (runbooks, postmortems,
     knowledge artifacts, resolved incidents). Idempotent per object."""

@@ -4,6 +4,7 @@ import sys
 from datetime import datetime, timezone
 
 from app.core.config import Settings
+from app.core.request_context import RequestIdFilter
 
 
 class JsonFormatter(logging.Formatter):
@@ -36,13 +37,14 @@ def configure_logging(settings: Settings) -> None:
     structured JSON formatter when ``BREADCRUMBS_LOG_JSON`` is enabled.
     """
     handler = logging.StreamHandler(sys.stdout)
+    handler.addFilter(RequestIdFilter())
 
     if settings.log_json:
         handler.setFormatter(JsonFormatter())
     else:
         handler.setFormatter(
             logging.Formatter(
-                fmt="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+                fmt="%(asctime)s | %(levelname)-8s | %(name)s | req=%(request_id)s | %(message)s",
                 datefmt="%Y-%m-%dT%H:%M:%S%z",
             )
         )

@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import timezone
 from typing import Any, Protocol
 
 import httpx

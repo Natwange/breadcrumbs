@@ -464,6 +464,51 @@ A single collector failure raises `CollectorError`, which the investigation
 runner isolates per-collector: the collector's `CollectorRun` is marked
 `failed` and the run continues with evidence from the other collectors.
 
+## Production hardening & deployment (Phase 12)
+
+Prepares the MVP for demo and staging: Docker, CI, observability, rate limits,
+and deployment docs.
+
+### MVP integration model
+
+- **One organization per deployment** for real GitHub/Render tokens.
+- Tokens live in **backend environment variables only** (not per-tenant in DB).
+- **Multi-tenant per-org integration credentials are not supported** until
+  encrypted vault storage (Supabase Vault or external secret manager) is added.
+
+### Hardening
+
+| Feature | Implementation |
+| ------- | -------------- |
+| Request IDs | `X-Request-ID` on every response; included in structured logs |
+| Structured logging | JSON via `BREADCRUMBS_LOG_JSON=true`; `request_id` on every line |
+| Sentry (backend) | Optional `BREADCRUMBS_SENTRY_DSN`; PII off, no request bodies |
+| Rate limits | Per-org sliding window on expensive endpoints (see below) |
+| CORS | Restricted to `BREADCRUMBS_CORS_ORIGINS`; explicit methods/headers |
+
+### Rate-limited endpoints
+
+| Endpoint | Category | Default limit/min |
+| -------- | -------- | ----------------- |
+| `POST /api/incidents/{id}/investigation-runs` | investigation | 5 |
+| `POST /api/incidents/{id}/postmortem` | ai | 5 |
+| `POST /api/knowledge/build` | knowledge_build | 10 |
+| `POST /api/knowledge/artifacts` | artifact_upload | 20 |
+| `POST /api/embeddings/backfill` | embedding_backfill | 2 |
+
+Disable with `BREADCRUMBS_RATE_LIMIT_ENABLED=false` (dev only).
+
+### Deployment artifacts
+
+- `backend/Dockerfile` — production image (migrations + uvicorn)
+- `render.yaml` — Render blueprint (backend + frontend)
+- `.github/workflows/ci.yml` — ruff + pytest + frontend lint/build
+
+### Documentation
+
+See repo root `docs/`: architecture, security, deployment, demo script, known
+limitations.
+
 ## Configuration
 
 Settings are loaded from environment variables (prefixed with `BREADCRUMBS_`)
@@ -495,6 +540,16 @@ or a local `.env` file. See [`.env.example`](.env.example) for all options.
 | `BREADCRUMBS_RENDER_API_KEY`         | _(empty)_        | Render API key; blank uses fake collector.     |
 | `BREADCRUMBS_RENDER_API_BASE`        | `https://api.render.com/v1` | Render API base URL.            |
 | `BREADCRUMBS_RENDER_OWNER_ID`        | _(empty)_        | Optional owner id to scope Render services.     |
+| `BREADCRUMBS_SENTRY_DSN`             | _(empty)_        | Sentry DSN; blank disables error reporting.       |
+| `BREADCRUMBS_SENTRY_TRACES_SAMPLE_RATE` | `0.0`         | Sentry performance sampling (0 = off).            |
+| `BREADCRUMBS_RELEASE`                | _(empty)_        | Optional release tag for Sentry events.          |
+| `BREADCRUMBS_RATE_LIMIT_ENABLED`     | `true`           | Enable per-org rate limits on expensive routes.   |
+| `BREADCRUMBS_RATE_LIMIT_WINDOW_SECONDS` | `60`          | Sliding window length in seconds.                 |
+| `BREADCRUMBS_RATE_LIMIT_INVESTIGATION_PER_MIN` | `5`    | Investigation runs per org per window.            |
+| `BREADCRUMBS_RATE_LIMIT_AI_PER_MIN`  | `5`              | Postmortem / AI endpoints per org per window.     |
+| `BREADCRUMBS_RATE_LIMIT_KNOWLEDGE_BUILD_PER_MIN` | `10` | Knowledge build per org per window.               |
+| `BREADCRUMBS_RATE_LIMIT_ARTIFACT_UPLOAD_PER_MIN` | `20` | Artifact ingest per org per window.               |
+| `BREADCRUMBS_RATE_LIMIT_EMBEDDING_BACKFILL_PER_MIN` | `2` | Embedding backfill per org per window.         |
 
 ## Project structure
 

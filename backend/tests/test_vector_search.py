@@ -12,7 +12,6 @@ from app.models import (
     EmbeddingRecord,
     Incident,
     KnowledgeArtifact,
-    Postmortem,
     Runbook,
 )
 from app.services.vector_search.embedding_queue import EmbeddingQueue
@@ -20,7 +19,6 @@ from app.services.vector_search.embedding_service import EmbeddingService
 from app.services.vector_search.embedding_validator import EmbeddingValidator
 from app.services.vector_search.object_types import (
     OBJECT_TYPE_INCIDENT,
-    OBJECT_TYPE_KNOWLEDGE_ARTIFACT,
     OBJECT_TYPE_RUNBOOK,
 )
 from app.services.vector_search.similarity_service import SimilarityService

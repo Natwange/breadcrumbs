@@ -25,6 +25,8 @@ from app.models import (
     Postmortem,
     Runbook,
 )
+from app.services.vector_search.embedding_service import EmbeddingService
+from app.services.vector_search.embedding_validator import EmbeddingValidator
 from app.services.vector_search.object_types import (
     EMBEDDABLE_OBJECT_TYPES,
     OBJECT_TYPE_INCIDENT,
@@ -32,8 +34,6 @@ from app.services.vector_search.object_types import (
     OBJECT_TYPE_POSTMORTEM,
     OBJECT_TYPE_RUNBOOK,
 )
-from app.services.vector_search.embedding_service import EmbeddingService
-from app.services.vector_search.embedding_validator import EmbeddingValidator
 
 _RESOLVED_INCIDENT_STATUSES = frozenset({"resolved", "closed"})
 

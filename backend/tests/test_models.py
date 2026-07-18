@@ -3,7 +3,6 @@
 import uuid
 
 import pytest
-from sqlalchemy import inspect
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
@@ -57,6 +58,10 @@ export default function AccountPanel() {
           </p>
         </div>
       )}
+
+      <Link href="/investigations" className="health-button">
+        Go to investigations
+      </Link>
 
       <button type="button" className="health-button" onClick={() => signOut()}>
         Log out

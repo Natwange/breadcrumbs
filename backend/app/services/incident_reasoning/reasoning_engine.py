@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 import httpx
+from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
 from app.models import (
@@ -37,7 +38,6 @@ from app.services.incident_reasoning.reasoning_schema import (
     parse_reasoning_output,
 )
 from app.services.vector_search.similarity_service import SimilarityContext
-from sqlalchemy.orm import Session
 
 _COST_PER_INPUT = 3.0 / 1_000_000
 _COST_PER_OUTPUT = 15.0 / 1_000_000

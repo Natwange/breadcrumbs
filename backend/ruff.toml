@@ -1,0 +1,13 @@
+line-length = 100
+target-version = "py312"
+
+[lint]
+# Pyflakes (F) catches real bugs; isort (I) keeps imports tidy; a subset of
+# pycodestyle errors (E) catches syntax-level issues. Style-only noise is left
+# out so CI stays focused on correctness.
+select = ["F", "I", "E4", "E7", "E9", "B"]
+ignore = ["B008"]  # FastAPI uses `Depends(...)` as default args by design.
+
+[lint.per-file-ignores]
+"migrations/*" = ["F401", "I001"]
+"tests/*" = ["B011"]

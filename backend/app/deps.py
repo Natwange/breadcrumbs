@@ -21,11 +21,6 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.security import AuthError, JWTVerifier, TokenClaims, get_verifier
-from app.db.session import get_db
-from app.models import Organization, OrganizationMember, UserProfile
-from app.services.provisioning import get_or_provision_user
-
 # Re-export role constants for convenience in route modules.
 from app.core.roles import (  # noqa: F401
     CAN_MANAGE_ORG,
@@ -36,6 +31,13 @@ from app.core.roles import (  # noqa: F401
     ROLE_OWNER,
     ROLE_VIEWER,
 )
+from app.core.logging import get_logger
+from app.core.security import AuthError, JWTVerifier, TokenClaims, get_verifier
+from app.db.session import get_db
+from app.models import Organization, OrganizationMember, UserProfile
+from app.services.provisioning import get_or_provision_user
+
+logger = get_logger(__name__)
 
 # auto_error=False so we can return a consistent 401 with a WWW-Authenticate
 # header rather than FastAPI's default 403 for a missing credential.
@@ -60,8 +62,9 @@ def get_token_claims(
         raise _UNAUTHORIZED
     try:
         return verifier.verify(credentials.credentials)
-    except AuthError:
-        raise _UNAUTHORIZED
+    except AuthError as exc:
+        logger.warning("token verification failed: %s", exc)
+        raise _UNAUTHORIZED from None
 
 
 def get_current_user(
@@ -104,7 +107,7 @@ def get_current_organization(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid X-Organization-Id",
-            )
+            ) from None
         org = db.scalar(stmt.where(Organization.id == requested))
         if org is None:
             # User is not a member of the requested org: deny (do not leak).

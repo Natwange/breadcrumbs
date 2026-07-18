@@ -9,13 +9,12 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.roles import ALL_ROLES, CAN_MANAGE_ORG
+from app.core.roles import ALL_ROLES
 from app.models import (
     Organization,
     OrganizationInvitation,
     OrganizationMember,
     OrganizationSettings,
-    UserProfile,
 )
 from app.services.audit import (
     AUDIT_MEMBER_INVITED,

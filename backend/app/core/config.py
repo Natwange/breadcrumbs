@@ -59,7 +59,7 @@ class Settings(BaseSettings):
     # Claude (optional — knowledge builder architecture extraction)
     # ------------------------------------------------------------------
     anthropic_api_key: str = ""
-    anthropic_model: str = "claude-sonnet-4-20250514"
+    anthropic_model: str = "claude-sonnet-4-6"
 
     # ------------------------------------------------------------------
     # Vector search / organizational memory (Phase 7)
@@ -93,6 +93,38 @@ class Settings(BaseSettings):
     langfuse_public_key: str = ""
     langfuse_secret_key: str = ""
     langfuse_host: str = "https://cloud.langfuse.com"
+
+    # ------------------------------------------------------------------
+    # Sentry error tracking (optional — Phase 12 production hardening)
+    # ------------------------------------------------------------------
+    # When a DSN is set, unhandled errors are reported to Sentry. Leave blank
+    # to disable (the default in dev/tests). PII sending is disabled.
+    sentry_dsn: str = ""
+    sentry_traces_sample_rate: float = 0.0
+    # Optional release identifier (e.g. git SHA) attached to Sentry events.
+    release: str = ""
+
+    # Incoming Sentry webhooks (alerts FROM an instrumented app → Breadcrumbs).
+    # Shared secret + org id; empty secret disables the webhook endpoint.
+    sentry_webhook_secret: str = ""
+    sentry_webhook_org_id: str = ""
+
+    # ------------------------------------------------------------------
+    # Rate limiting (Phase 12) — protects expensive/AI endpoints.
+    # Limits are per-organization, per-category, over a sliding window.
+    # ------------------------------------------------------------------
+    rate_limit_enabled: bool = True
+    rate_limit_window_seconds: int = 60
+    # Full AI investigation runs (collectors + Claude reasoning).
+    rate_limit_investigation_per_min: int = 5
+    # Postmortem generation (Claude).
+    rate_limit_ai_per_min: int = 5
+    # Knowledge graph build (Claude architecture extraction).
+    rate_limit_knowledge_build_per_min: int = 10
+    # Artifact uploads / ingestion.
+    rate_limit_artifact_upload_per_min: int = 20
+    # Embedding backfill (bulk).
+    rate_limit_embedding_backfill_per_min: int = 2
 
     # Logging
     log_level: str = "INFO"

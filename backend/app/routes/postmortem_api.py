@@ -7,6 +7,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.core.rate_limit import rate_limit
 from app.core.roles import CAN_WRITE_CONTENT
 from app.deps import CurrentOrganization, CurrentUser, DbSession, require_org_role
 from app.schemas.postmortem import (
@@ -35,6 +36,7 @@ def generate_postmortem(
     user: CurrentUser,
     db: DbSession,
     _membership: Annotated[object, Depends(_write)],
+    _rate_limit: Annotated[None, Depends(rate_limit("ai"))] = None,
 ) -> PostmortemGenerateResponse:
     try:
         result = _generator.generate(

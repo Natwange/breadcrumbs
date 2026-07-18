@@ -268,3 +268,27 @@ def test_investigation_plan_persisted(session: Session):
         ).all()
     )
     assert len(evidence) == result.evidence_count
+
+
+def test_incident_workspace_returns_nested_data(
+    client: TestClient, session: Session
+):
+    db = session
+    user, org, _ = seed_org_member(db, role="member")
+    _seed_knowledge_graph(db, org.id)
+    incident = _seed_incident_with_alert(db, org.id)
+    result = InvestigationRunner().run(db, org.id, incident.id)
+
+    headers = auth_headers(make_token(str(user.id), user.email))
+    resp = client.get(
+        f"/api/incidents/{incident.id}/workspace",
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["incident"]["id"] == str(incident.id)
+    assert len(body["alerts"]) >= 1
+    assert len(body["runs"]) == 1
+    assert body["run"]["id"] == str(result.run.id)
+    assert len(body["evidence"]) == result.evidence_count
+    assert len(body["timeline"]) == result.timeline_count

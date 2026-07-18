@@ -7,18 +7,17 @@ tokens are never returned by the API.
 
 from __future__ import annotations
 
-import uuid
 from datetime import datetime, timedelta, timezone
 
 import httpx
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 
 from app.core.config import Settings
 from app.main import app
-from app.models import CollectorRun, Evidence, InvestigationRun
+from app.models import CollectorRun, Evidence
 from app.routes.integrations_api import get_integration_service
 from app.services.integrations.collector_interface import CollectorError
 from app.services.integrations.github_client import GithubClient

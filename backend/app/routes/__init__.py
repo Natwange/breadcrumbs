@@ -15,12 +15,14 @@ from app.routes import (
     knowledge_api,
     organizations,
     postmortem_api,
+    webhooks_api,
 )
 
 api_router = APIRouter()
 
 # Public
 api_router.include_router(health.router)
+api_router.include_router(webhooks_api.router)
 
 # Authenticated
 api_router.include_router(auth.router)

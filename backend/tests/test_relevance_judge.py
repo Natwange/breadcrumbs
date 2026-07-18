@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import uuid
 from dataclasses import dataclass, field
 
 from sqlalchemy import select
@@ -24,7 +23,6 @@ from app.services.investigation_engine.relevance_schema import (
     parse_judgments,
 )
 from tests.conftest import seed_org_member
-
 
 # --- Fake Claude clients ---------------------------------------------------
 

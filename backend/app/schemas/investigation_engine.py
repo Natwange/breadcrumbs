@@ -92,3 +92,104 @@ class AlertIngestRequest(BaseModel):
 class AlertIngestResponse(BaseModel):
     alert_id: uuid.UUID
     incident_id: uuid.UUID
+
+
+class EvidenceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    source: str
+    evidence_type: str
+    title: str | None
+    content: str | None
+    relevance_score: float | None
+    relevance_label: str | None
+    relevance_confidence: str | None
+    relevance_reason: str | None
+    observed_at: datetime | None
+
+
+class TimelineEventOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    event_time: datetime | None
+    title: str
+    description: str | None
+    source: str | None
+    event_type: str | None
+
+
+class SuggestedActionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    title: str
+    description: str | None
+    action_type: str | None
+    status: str
+    requires_human_approval: bool
+
+
+class AlertOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    source: str
+    title: str
+    description: str | None
+    status: str
+    severity: str | None
+    fired_at: datetime | None
+
+
+class IncidentImpactOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    impact_type: str
+    description: str | None
+    severity: str | None
+    affected_services: dict | None
+    metrics: dict | None
+
+
+class IncidentWorkspaceOut(BaseModel):
+    """Aggregated incident view for the frontend workspace shell."""
+
+    incident: "IncidentWorkspaceIncidentOut"
+    alerts: list[AlertOut]
+    runs: list[InvestigationRunStartOut]
+    run: InvestigationRunDetailOut | None = None
+    evidence: list[EvidenceOut] = []
+    timeline: list[TimelineEventOut] = []
+    hypotheses: list[HypothesisOut] = []
+    suggested_actions: list[SuggestedActionOut] = []
+    impacts: list[IncidentImpactOut] = []
+    postmortem: "PostmortemSummaryOut | None" = None
+
+
+class IncidentWorkspaceIncidentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    title: str
+    description: str | None
+    status: str
+    severity: str | None
+    created_at: datetime
+
+
+class PostmortemSummaryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+    id: uuid.UUID
+    title: str
+    status: str
+    postmortem_source: str
+    sections: dict | None = Field(
+        default=None,
+        validation_alias="sections_",
+        serialization_alias="sections",
+    )
+    created_at: datetime

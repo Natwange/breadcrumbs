@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { AuthProvider } from "@/components/AuthProvider";
+import SentryInit from "@/components/SentryInit";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,6 +18,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
+        <SentryInit />
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

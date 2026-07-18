@@ -21,6 +21,7 @@ from app.models import (
     SlackDraft,
     TimelineEvent,
 )
+from app.services.incident_reasoning.reasoning_engine import ReasoningEngine
 from app.services.investigation_engine.collector_registry import CollectorRegistry
 from app.services.investigation_engine.evidence_normalizer import EvidenceNormalizer
 from app.services.investigation_engine.evidence_quality_validator import EvidenceQualityValidator
@@ -28,7 +29,6 @@ from app.services.investigation_engine.investigation_planner import Investigatio
 from app.services.investigation_engine.knowledge_context_builder import KnowledgeContextBuilder
 from app.services.investigation_engine.relevance_judge import RelevanceJudge
 from app.services.investigation_engine.timeline_builder import TimelineBuilder
-from app.services.incident_reasoning.reasoning_engine import ReasoningEngine
 from app.services.vector_search.similarity_service import SimilarityContext, SimilarityService
 
 
@@ -192,7 +192,7 @@ class InvestigationRunner:
 
             # Step: batched evidence relevance judging (Claude + fallback).
             evidence_payload: list[dict] = []
-            for row, item in zip(evidence_rows, deduped):
+            for row, item in zip(evidence_rows, deduped, strict=False):
                 eid = str(row.id)
                 item_by_evidence[eid] = row
                 evidence_payload.append(

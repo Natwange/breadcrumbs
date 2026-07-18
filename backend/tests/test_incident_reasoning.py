@@ -19,7 +19,6 @@ from app.services.incident_reasoning.reasoning_engine import (
 from app.services.incident_reasoning.reasoning_schema import (
     REASONING_SOURCE_CLAUDE,
     REASONING_SOURCE_FALLBACK,
-    REASONING_STATUS_FALLBACK,
     REASONING_STATUS_INSUFFICIENT_EVIDENCE,
     ReasoningAction,
     ReasoningHypothesis,

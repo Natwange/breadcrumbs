@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -19,7 +18,6 @@ from app.models import (
     TimelineEvent,
 )
 from app.services.investigation_engine.knowledge_context_builder import (
-    InvestigationContext,
     KnowledgeContextBuilder,
 )
 from app.services.knowledge_builder.secret_redactor import redact_secrets
