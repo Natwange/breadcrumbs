@@ -117,7 +117,11 @@ class InvestigationRunner:
             start_time = end_time - timedelta(hours=1)
             alert_context = self._collectors.build_alert_context(context, alerts)
 
-            raw_items: list[dict] = []
+            # Seed evidence from real incident alerts (e.g. Sentry) — never invent
+            # collector output when integrations are unavailable.
+            raw_items: list[dict] = [
+                self._alert_to_evidence_item(alert) for alert in alerts
+            ]
             for step in plan_payload.get("steps", []):
                 collector_name = step.get("collector")
                 if not collector_name:
@@ -267,6 +271,24 @@ class InvestigationRunner:
             slack_draft=slack_row,
             similarity=similarity,
         )
+
+    @staticmethod
+    def _alert_to_evidence_item(alert: Alert) -> dict:
+        observed = alert.fired_at or alert.created_at
+        content = (alert.description or alert.title or "").strip()
+        if not content:
+            content = f"Alert from {alert.source}"
+        return {
+            "source": alert.source or "alert",
+            "evidence_type": "alert",
+            "title": alert.title or f"{alert.source} alert",
+            "content": content,
+            "observed_at": observed.isoformat() if observed is not None else None,
+            "metadata": {
+                "alert_id": str(alert.id),
+                "raw_payload": alert.raw_payload,
+            },
+        }
 
     def _deduplication_key(self, item: dict) -> str:
         parts = [

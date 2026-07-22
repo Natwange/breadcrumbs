@@ -1,7 +1,8 @@
 """Collect Render evidence (deploy events, status, health) for an incident.
 
-Normalizes Render API responses into the same raw-evidence shape produced by
-the fake collectors. All free-text content is secret-redacted before storage.
+Normalizes Render API responses into the shared raw-evidence shape used by
+the investigation engine. All free-text content is secret-redacted before
+storage.
 """
 
 from __future__ import annotations

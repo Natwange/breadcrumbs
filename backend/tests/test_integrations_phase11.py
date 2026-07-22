@@ -230,7 +230,7 @@ def test_collector_failure_does_not_fail_investigation_run(session_factory: sess
     registry = CollectorRegistry()
     failing_client = GithubClient(_github_settings(), transport=_github_transport(fail=True))
     registry.register(
-        "fake_github_collector",
+        "github_collector",
         GithubCollector(failing_client, default_repo="acme/backend"),
     )
     runner = InvestigationRunner(collectors=registry)
@@ -260,7 +260,7 @@ def test_real_github_collector_evidence_persisted_in_run(session_factory: sessio
     registry = CollectorRegistry()
     client = GithubClient(_github_settings(), transport=_github_transport())
     registry.register(
-        "fake_github_collector",
+        "github_collector",
         GithubCollector(client, default_repo="acme/backend"),
     )
     runner = InvestigationRunner(collectors=registry)

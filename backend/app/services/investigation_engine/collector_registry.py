@@ -1,13 +1,11 @@
 """Evidence collectors for investigations.
 
-Fake collectors keep the engine fully functional offline; real GitHub/Render
-collectors are transparently swapped in when backend credentials are present.
-The rest of the investigation engine never needs to know which is in use.
+Only real GitHub/Render collectors are registered when backend credentials are
+present. There are no hardcoded fake evidence collectors — missing credentials
+mean that collector is simply unavailable and the plan step is skipped.
 """
 
 from __future__ import annotations
-
-from datetime import datetime, timezone
 
 from app.core.config import Settings, get_settings
 from app.services.integrations.collector_interface import Collector
@@ -17,152 +15,24 @@ from app.services.integrations.render_client import RenderClient
 from app.services.integrations.render_collector import RenderCollector
 from app.services.investigation_engine.knowledge_context_builder import InvestigationContext
 
-
-def _iso(dt: datetime) -> str:
-    return dt.astimezone(timezone.utc).isoformat()
-
-
-class FakeGithubCollector:
-    name = "fake_github_collector"
-
-    def collect(
-        self,
-        service_name: str,
-        start_time: datetime,
-        end_time: datetime,
-        alert_context: dict,
-    ) -> list[dict]:
-        return [
-            {
-                "source": "github",
-                "evidence_type": "deploy",
-                "title": f"Recent commit on {service_name}",
-                "content": f"Commit abc1234 touched {service_name} configuration",
-                "observed_at": _iso(end_time),
-                "metadata": {"repo": "acme/focusflow", "sha": "abc1234"},
-            }
-        ]
-
-
-class FakeRenderCollector:
-    name = "fake_render_collector"
-
-    def collect(
-        self,
-        service_name: str,
-        start_time: datetime,
-        end_time: datetime,
-        alert_context: dict,
-    ) -> list[dict]:
-        return [
-            {
-                "source": "render",
-                "evidence_type": "deploy",
-                "title": f"Render deploy for {service_name}",
-                "content": "Deploy succeeded 12 minutes before alert fired",
-                "observed_at": _iso(start_time),
-                "metadata": {"provider": "render", "status": "live"},
-            }
-        ]
-
-
-class FakeMetricsCollector:
-    name = "fake_metrics_collector"
-
-    def collect(
-        self,
-        service_name: str,
-        start_time: datetime,
-        end_time: datetime,
-        alert_context: dict,
-    ) -> list[dict]:
-        return [
-            {
-                "source": "metrics",
-                "evidence_type": "metric_spike",
-                "title": f"Elevated p95 latency on {service_name}",
-                "content": f"p95 latency rose from 120ms to 890ms on {service_name}",
-                "observed_at": _iso(end_time),
-                "metadata": {"metric": "http.latency.p95", "value": 890},
-            },
-            {
-                "source": "metrics",
-                "evidence_type": "metric_spike",
-                "title": f"Elevated p95 latency on {service_name}",
-                "content": f"p95 latency rose from 120ms to 890ms on {service_name}",
-                "observed_at": _iso(end_time),
-                "metadata": {"metric": "http.latency.p95", "value": 890},
-            },
-        ]
-
-
-class FakeErrorsCollector:
-    name = "fake_errors_collector"
-
-    def collect(
-        self,
-        service_name: str,
-        start_time: datetime,
-        end_time: datetime,
-        alert_context: dict,
-    ) -> list[dict]:
-        return [
-            {
-                "source": "errors",
-                "evidence_type": "error_log",
-                "title": f"Connection timeout errors on {service_name}",
-                "content": "Timeout connecting to downstream database pool",
-                "observed_at": _iso(end_time),
-                "metadata": {"error_class": "TimeoutError", "count": 42},
-            }
-        ]
-
-
-class FakeCloudStatusCollector:
-    name = "fake_cloud_status_collector"
-
-    def collect(
-        self,
-        service_name: str,
-        start_time: datetime,
-        end_time: datetime,
-        alert_context: dict,
-    ) -> list[dict]:
-        return [
-            {
-                "source": "cloud_status",
-                "evidence_type": "provider_status",
-                "title": f"{service_name} status page",
-                "content": f"No active incidents reported for {service_name}",
-                "observed_at": _iso(end_time),
-                "metadata": {"provider": service_name, "status": "operational"},
-            }
-        ]
+GITHUB_COLLECTOR = "github_collector"
+RENDER_COLLECTOR = "render_collector"
 
 
 class CollectorRegistry:
     def __init__(self, settings: Settings | None = None) -> None:
         settings = settings or get_settings()
-        collectors: list[Collector] = [
-            FakeGithubCollector(),
-            FakeRenderCollector(),
-            FakeMetricsCollector(),
-            FakeErrorsCollector(),
-            FakeCloudStatusCollector(),
-        ]
-        self._by_name = {c.name: c for c in collectors}
+        self._by_name: dict[str, Collector] = {}
 
-        # Swap real collectors in under the same logical name the planner uses,
-        # so the engine stays agnostic to fake-vs-real. Only happens when the
-        # corresponding backend credential is configured.
         github_client = GithubClient(settings)
         if github_client.enabled:
-            self._by_name["fake_github_collector"] = GithubCollector(
+            self._by_name[GITHUB_COLLECTOR] = GithubCollector(
                 github_client, default_repo=settings.github_default_repo
             )
+
         render_client = RenderClient(settings)
         if render_client.enabled:
-            self._by_name["fake_render_collector"] = RenderCollector(render_client)
+            self._by_name[RENDER_COLLECTOR] = RenderCollector(render_client)
 
     def register(self, name: str, collector: Collector) -> None:
         """Override a collector by logical name (used in tests/wiring)."""

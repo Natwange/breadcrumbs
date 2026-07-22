@@ -147,9 +147,13 @@ def test_planner_uses_dependencies(session: Session):
     collectors = {s["collector"] for s in plan["steps"] if s.get("collector")}
     targets = {s["target_service"] for s in plan["steps"] if s.get("target_service")}
 
-    assert "fake_metrics_collector" in collectors
-    assert "supabase" in targets or "render" in targets
+    assert "github_collector" in collectors
+    assert "render_collector" in collectors
+    assert "supabase" not in targets  # no fake dependency-metrics collectors
     assert services["backend"].name in targets
+    assert "fake_metrics_collector" not in collectors
+    assert "fake_errors_collector" not in collectors
+    assert "fake_cloud_status_collector" not in collectors
 
 
 def test_evidence_normalizes_and_deduplicates(session: Session):

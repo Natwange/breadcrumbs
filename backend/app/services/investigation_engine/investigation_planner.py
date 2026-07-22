@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.services.investigation_engine.collector_registry import (
+    GITHUB_COLLECTOR,
+    RENDER_COLLECTOR,
+)
 from app.services.investigation_engine.knowledge_context_builder import InvestigationContext
 
 
@@ -25,28 +29,6 @@ class InvestigationPlanner:
         steps.append(
             PlannedStep(
                 order=order,
-                action="collect_metrics",
-                collector="fake_metrics_collector",
-                target_service=affected,
-                rationale=f"Gather latency and error metrics for {affected}",
-            )
-        )
-        order += 1
-
-        steps.append(
-            PlannedStep(
-                order=order,
-                action="collect_errors",
-                collector="fake_errors_collector",
-                target_service=affected,
-                rationale=f"Pull recent error logs for {affected}",
-            )
-        )
-        order += 1
-
-        steps.append(
-            PlannedStep(
-                order=order,
                 action="finding_similar_incidents",
                 collector=None,
                 target_service=affected,
@@ -56,53 +38,46 @@ class InvestigationPlanner:
         )
         order += 1
 
-        for dep in context.direct_dependencies:
-            steps.append(
-                PlannedStep(
-                    order=order,
-                    action="collect_dependency_metrics",
-                    collector="fake_metrics_collector",
-                    target_service=dep,
-                    rationale=f"Check direct dependency {dep} (upstream of {affected})",
-                )
+        # Real collectors only. The runner skips a step when the named collector
+        # is not registered (e.g. no GitHub/Render credentials configured).
+        steps.append(
+            PlannedStep(
+                order=order,
+                action="collect_recent_commits",
+                collector=GITHUB_COLLECTOR,
+                target_service=affected,
+                rationale="Correlate recent commits/PRs with incident onset",
             )
-            order += 1
+        )
+        order += 1
 
-        if any(p.lower() == "render" for p in context.external_providers):
+        if any(p.lower() == "render" for p in context.external_providers) or (
+            context.affected_service
+            and context.affected_service.lower() in {"render", "focusflow-server"}
+        ):
             steps.append(
                 PlannedStep(
                     order=order,
                     action="collect_deploy_events",
-                    collector="fake_render_collector",
+                    collector=RENDER_COLLECTOR,
                     target_service="render",
-                    rationale="Render is an external provider in the blast radius",
+                    rationale="Collect Render deploy and health evidence",
                 )
             )
             order += 1
-
-        if context.related_services:
-            steps.append(
-                PlannedStep(
-                    order=order,
-                    action="collect_recent_commits",
-                    collector="fake_github_collector",
-                    target_service=affected,
-                    rationale="Correlate recent deploys with incident onset",
+        else:
+            # Still attempt Render when it appears as a dependency/hosting edge.
+            if any(d.lower() == "render" for d in context.direct_dependencies):
+                steps.append(
+                    PlannedStep(
+                        order=order,
+                        action="collect_deploy_events",
+                        collector=RENDER_COLLECTOR,
+                        target_service="render",
+                        rationale="Render is a direct dependency of the affected service",
+                    )
                 )
-            )
-            order += 1
-
-        if context.external_providers:
-            steps.append(
-                PlannedStep(
-                    order=order,
-                    action="check_provider_status",
-                    collector="fake_cloud_status_collector",
-                    target_service=context.external_providers[0],
-                    rationale="Verify third-party provider status pages",
-                )
-            )
-            order += 1
+                order += 1
 
         steps.append(
             PlannedStep(

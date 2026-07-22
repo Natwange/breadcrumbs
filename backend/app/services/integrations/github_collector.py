@@ -1,8 +1,8 @@
 """Collect GitHub evidence (commits, pull requests, merges) for an incident.
 
-Normalizes GitHub API responses into the same raw-evidence shape produced by
-the fake collectors, so the investigation engine is provider-agnostic. All
-free-text content is secret-redacted before it leaves this module.
+Normalizes GitHub API responses into the shared raw-evidence shape used by
+the investigation engine. All free-text content is secret-redacted before it
+leaves this module.
 """
 
 from __future__ import annotations
