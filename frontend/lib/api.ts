@@ -114,6 +114,14 @@ export async function createIncident(payload: {
   return (await response.json()) as Incident;
 }
 
+export async function resolveIncident(incidentId: string): Promise<Incident> {
+  const response = await apiFetch(`/incidents/${incidentId}/resolve`, {
+    method: "POST",
+  });
+  if (!response.ok) throw await toError(response);
+  return (await response.json()) as Incident;
+}
+
 // --- Investigation runs -------------------------------------------------------
 
 export interface InvestigationRun {

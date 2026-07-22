@@ -23,6 +23,7 @@ import {
 import {
   getIncidentWorkspace,
   isTerminalRunStatus,
+  resolveIncident,
   startInvestigation,
   type IncidentWorkspace,
   type PostmortemSummary,
@@ -39,6 +40,7 @@ export default function IncidentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+  const [resolving, setResolving] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearTimer = useCallback(() => {
@@ -119,6 +121,19 @@ export default function IncidentDetailPage() {
     }
   }
 
+  async function handleResolve() {
+    setResolving(true);
+    setError(null);
+    try {
+      await resolveIncident(incidentId);
+      await loadWorkspace(selectedRunId ?? undefined);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to resolve incident");
+    } finally {
+      setResolving(false);
+    }
+  }
+
   async function handleSelectRun(runId: string) {
     setSelectedRunId(runId);
     setError(null);
@@ -138,6 +153,8 @@ export default function IncidentDetailPage() {
   if (!workspace) return <ErrorBanner message="Incident not found" />;
 
   const { incident } = workspace;
+  const isResolved =
+    incident.status === "resolved" || incident.status === "closed";
 
   return (
     <div className="workspace-content">
@@ -145,7 +162,21 @@ export default function IncidentDetailPage() {
       <PageHeader
         title={incident.title}
         description={incident.description ?? undefined}
-        actions={<StatusBadge status={incident.status} />}
+        actions={
+          <div className="card-row">
+            <StatusBadge status={incident.status} />
+            {!isResolved && (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={handleResolve}
+                disabled={resolving}
+              >
+                {resolving ? "Resolving…" : "Resolve incident"}
+              </button>
+            )}
+          </div>
+        }
       />
       {error && <ErrorBanner message={error} />}
 
