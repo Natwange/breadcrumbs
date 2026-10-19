@@ -21,8 +21,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
 from app.models import Alert, Incident
-from app.services.alert_ingest import normalize_demo_payload
 from app.schemas.investigation_engine import AlertIngestRequest
+from app.services.alert_ingest import normalize_demo_payload
 from tests.conftest import seed_org_member
 
 SECRET = "test-sentry-webhook-secret"

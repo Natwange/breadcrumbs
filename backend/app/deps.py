@@ -21,6 +21,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.logging import get_logger
+
 # Re-export role constants for convenience in route modules.
 from app.core.roles import (  # noqa: F401
     CAN_MANAGE_ORG,
@@ -31,7 +33,6 @@ from app.core.roles import (  # noqa: F401
     ROLE_OWNER,
     ROLE_VIEWER,
 )
-from app.core.logging import get_logger
 from app.core.security import AuthError, JWTVerifier, TokenClaims, get_verifier
 from app.db.session import get_db
 from app.models import Organization, OrganizationMember, UserProfile

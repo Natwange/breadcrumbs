@@ -249,7 +249,7 @@ def test_sparse_metadata_does_not_inflate_attach_confidence(session: Session):
     _, org, _ = seed_org_member(session, role="member")
     now = datetime.now(tz=timezone.utc)
 
-    first = _ingest(
+    _first = _ingest(
         session,
         org.id,
         source="manual_demo",
