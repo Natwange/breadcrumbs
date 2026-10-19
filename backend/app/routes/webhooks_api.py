@@ -15,6 +15,7 @@ from app.deps import DbSession
 from app.models import Organization
 from app.schemas.investigation_engine import AlertIngestResponse
 from app.services.alert_correlation import AlertCorrelationService, AlertSignal
+from app.services.alert_ingest import extract_sentry_correlation_metadata
 from app.services.investigation_engine.investigation_runner import InvestigationRunner
 
 router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
@@ -65,27 +66,9 @@ def _parse_sentry_alert(body: dict[str, Any]) -> tuple[str, str | None, dict[str
     if description is not None and not isinstance(description, str):
         description = str(description)
 
-    project = event.get("project") or issue.get("project")
-    if isinstance(project, dict):
-        project = project.get("slug") or project.get("name")
-
-    raw: dict[str, Any] = {
-        "service": "focusflow-server",
-        "alert_type": "error",
-        "sentry_issue_id": str(issue.get("id") or event.get("issue_id") or ""),
-        "sentry_url": (
-            issue.get("web_url")
-            or issue.get("permalink")
-            or event.get("web_url")
-        ),
-        "level": event.get("level") or issue.get("level"),
-        "culprit": issue.get("culprit") or event.get("culprit"),
-        "project": project,
-        "triggered_rule": data.get("triggered_rule") or issue_alert.get("title"),
-        "provider": "sentry",
-        "action": body.get("action"),
-    }
-    return title, description, raw
+    # provider=sentry is the monitor. service is the affected project, or None
+    # when the payload does not name one. See extract_sentry_correlation_metadata.
+    return title, description, extract_sentry_correlation_metadata(body)
 
 
 @router.post(
